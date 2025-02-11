@@ -14,6 +14,7 @@ Financial Analysis: Integrated financial data to explore the relationship betwee
 The analysis uses R, with libraries such as ggplot2, dplyr, and stringr for data manipulation, visualization, and statistical modeling.
 
 Data Sources:
+
 [NCAA Basketball Statistics for 2024 season](https://www.kaggle.com/datasets/andrewsundberg/college-basketball-dataset)
 
 NCAA Basketball Finances dataset
