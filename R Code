@@ -1,0 +1,73 @@
+library(ggplot2)
+library(dplyr)
+library(stringr)
+df <- read.csv("cbb24.csv")
+str(df)
+View(df)
+# Offensive and Defensive Efficiency by Conference
+conf <- df %>% group_by(CONF) %>% summarise(OE = round(mean(ADJOE), 1), DE = round(mean(ADJDE), 1))
+df <- df %>% mutate_if(is.character, as.factor)
+df$TEAM <- as.character(as.character(df$TEAM))
+FP <- conf[order(-conf$OE, conf$DE),]
+View(FP)# The SEC was the best offensive conference, while the B12 was the best defensive conference
+write.table(FP, file="C:\\Users\\kojo-\\OneDrive\\Documents\\FP.txt")
+# Number of playoff teams that shoot above league average in 3's
+ThreePA <- mean(df$X3P_O)
+ThreePA
+PTWGTPP <-  sum(df$X3P_O > ThreePA & df$SEED != "N/A")
+PTWGTPP
+PT <- sum(df$SEED != "N/A")
+PT
+TP <- subset(df, SEED != "N/A")
+View(TP)
+PW <- PTWGTPP/PT
+PW # Over 70 Percent of Playoff Teams has a 3P% better than league average
+z <- ggplot(TP, aes())
+# Correlation between Turnovers and Wins
+DA <- cor(x = df$TOR, y = df$W)
+DA
+c <- ggplot(df, aes(TOR, W, color = TEAM)) + geom_point() + geom_smooth(method = "lm", se = FALSE, color = "black") + labs(title = "Correlation between Turnovers and Wins", x = "Turnovers", y = "Wins") + theme(legend.position = "none")
+c
+# T-Test Between SEC and the rest of the conferences
+SEC <- subset(df, CONF == "SEC")
+View(SEC)
+var(SEC$ADJOE)
+NonSEC <- subset(df, CONF !=  "SEC")
+df <- df %>% mutate(CONF = ifelse(CONF == "SEC", "SEC", "NonSEC"))
+View(df)
+View(NonSEC)
+var(NonSEC$ADJOE)
+t.test(SEC$ADJOE, NonSEC$ADJOE, var.equal = FALSE)
+
+w <- ggplot(df, aes(x = ADJOE, fill = CONF)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "T-Test Visualization (ADJOE Distributions)",
+       x = "Adjusted Offensive Efficiency (ADJOE)",
+       y = "Density") +
+  annotate("text", x = mean(df$ADJOE), y = 0.03, 
+           label = paste0("p-value: ", signif(t.test(SEC$ADJOE, NonSEC$ADJOE, var.equal = FALSE)$p.value, digits = 3)),
+           size = 5, color = "black") +
+  scale_fill_manual(values = c("blue", "orange")) +
+  theme_minimal()
+w
+#The SEC is significantly better than other conferences offensively
+# Why is that 
+# Cleaning up Finance data set
+df2 <- read.csv("NCAA Basketball Finances.csv")
+df2 <- df2 %>% rename(TEAM = School)
+df2 <- df2 %>% mutate(TEAM = as.factor(TEAM))
+df2 <- df2 %>% mutate(TEAM = str_replace(TEAM, "State", "St."))
+View(df2)
+# Joining Datasets 
+DF <- left_join(df, df2, by="TEAM")
+View(DF)
+# Only want schools with reported money
+DF <- subset(DF, !is.na(Conf) & Percentage.Allocated > 0 & Conf == "SEC")
+View(DF)
+DF <- DF %>% mutate(Conf = as.factor(Conf), Total.Expenses = as.numeric(Total.Expenses), Total.Allocated = as.integer(Total.Allocated), Percentage.Allocated = as.numeric(Percentage.Allocated))
+str(DF)
+MCor <- cor(x = DF$ADJOE, y = DF$Total.Allocated)
+MCor
+e <- ggplot(DF, aes(ADJOE, Total.Allocated, color = TEAM)) + geom_point() + labs(title = "Correlation between Money and OE", x = "Offensive Effeciency", y = "Total Money Allocated to Athletics") + scale_y_continuous(labels = scales::number_format(accuracy = 1))
+e
+# The amount of money allocated to athletics has little to do with the offensive success of teams in the SEC
